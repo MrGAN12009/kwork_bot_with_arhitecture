@@ -11,11 +11,11 @@ import asyncio
 cnx = mysql.connector.connect(user = 'root', password = 'root5115', host = 'localhost', database = 'users')
 cursor = cnx.cursor()
 #bot token
-token = "7430419581:AAFV5bZJrV04IjBnx7Gl3dcezE9Xn0xBbOA"
+token = ""
 bot = telebot.TeleBot(token)
 #необходимые переменные
 arr = {}
-ADMIN_ID = 630043071
+ADMIN_ID = 
 s = []
 
 
