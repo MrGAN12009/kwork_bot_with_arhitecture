@@ -4,20 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e744fbd2-06be-4e79-9784-52066bf0efb1" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/pybot_with_CPA.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/images/123.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/json.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/save.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/spam_post.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
+    <list default="true" id="e744fbd2-06be-4e79-9784-52066bf0efb1" name="Changes" comment="Авто заполнение формы при повторном обращении,&#10;решить вопрос со ссылками и дб.&#10;Удалены decode и encode за ненадобностью">
+      <change afterPath="$PROJECT_DIR$/conf_server.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/json.json" beforeDir="false" afterPath="$PROJECT_DIR$/json.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/save.json" beforeDir="false" afterPath="$PROJECT_DIR$/save.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -150,6 +143,19 @@
       <option name="presentableId" value="Default" />
       <updated>1727431742075</updated>
     </task>
+    <task id="LOCAL-00001" summary="Авто заполнение формы при повторном обращении,&#10;решить вопрос со ссылками и дб.">
+      <option name="closed" value="true" />
+      <created>1728319375896</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1728319375896</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Авто заполнение формы при повторном обращении,&#10;решить вопрос со ссылками и дб." />
+    <option name="LAST_COMMIT_MESSAGE" value="Авто заполнение формы при повторном обращении,&#10;решить вопрос со ссылками и дб." />
   </component>
 </project>
