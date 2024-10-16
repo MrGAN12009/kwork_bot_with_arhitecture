@@ -19,6 +19,7 @@ bot = telebot.TeleBot(token)
 #необходимые переменные
 arr = {}
 ADMIN_ID = int(conf["ADMIN_ID"])
+#513773161
 s = []
 
 
@@ -199,8 +200,9 @@ def but(call: types.CallbackQuery):
             markup.add(InlineKeyboardButton(f"{file[call.data]['btns'][i][0]}", url=f"{file[call.data]['btns'][i][1]}"))
         else:
             markup.add(InlineKeyboardButton(f"{file[call.data]['btns'][i][0]}", callback_data=f"{file[call.data]['btns'][i][1]}"))
-    markup.add(InlineKeyboardButton("политикой конфиденциальности", url='https://stoewer.ru/politika-konfidenczialnosti/'))
-    markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{call.data}_new"))
+    markup.add(InlineKeyboardButton("политика конфиденциальности", url='https://stoewer.ru/politika-konfidenczialnosti/'))
+    if call.message.chat.id == ADMIN_ID:
+        markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{call.data}_new"))
     markup.add(InlineKeyboardButton(f"главная", callback_data="start"))
     bot.send_message(call.message.chat.id, text=f"{file[call.data]['text']}", reply_markup=markup)
 
@@ -208,8 +210,26 @@ def but(call: types.CallbackQuery):
 @bot.callback_query_handler(func=lambda call: call.data == "ofStore")
 def but(call: types.CallbackQuery):
     markup = InlineKeyboardMarkup()
+    if call.message.chat.id == ADMIN_ID:
+        markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{call.data}_new"))
+        markup.add(InlineKeyboardButton(f"Изменить фото", callback_data=f"{call.data}Photo_new"))
     markup.add(InlineKeyboardButton(f"главная", callback_data="start"))
     bot.send_photo(call.message.chat.id, photo=open("images/123.png", "rb"), caption=f"{file[call.data]['text']}", reply_markup=markup)
+
+
+@bot.message_handler(content_types=['photo'])
+def get_photo_about(message: types.Message):
+    if message.chat.id == ADMIN_ID:
+        photo = message.photo[-1]
+        file_info = bot.get_file(photo.file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        save_path = 'images/123.png'
+        with open(save_path, 'wb') as new_file:
+            new_file.write(downloaded_file)
+        editSpamFile()
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton(f"Главная", callback_data="start"))
+        bot.send_message(message.chat.id, 'Фотография сохранена.', reply_markup=markup)
 
 
 #calls for remake text and urls
@@ -233,6 +253,11 @@ def edit(msg):
 
 @bot.callback_query_handler(func=lambda call: call.data.split("_")[-1] == "new")
 def but(call: types.CallbackQuery):
+    if call.data.split("_")[0] == "ofStorePhoto":
+        bot.send_message(ADMIN_ID, "Скиньте новое изображение:")
+        bot.register_next_step_handler(call.message, get_photo_about)
+        return
+
     comm = call.data.split('_')[0]
     markup = InlineKeyboardMarkup()
     markup.add(InlineKeyboardButton(f"Текст", callback_data=f"{call.data.split('_')[0]}_text"))
@@ -263,7 +288,9 @@ def but(call: types.CallbackQuery):
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton("главная", callback_data="start"))
         bot.send_message(call.message.chat.id, "Передаю ваши данные специалисту поддержки, ожидайте.", reply_markup=markup)
-        #to supports
+        cursor.execute(f"SELECT name, phone, mail FROM users WHERE userid = '{call.message.chat.id}'")
+        i = cursor.fetchone()
+        bot.send_message(ADMIN_ID, f"Поступила заявка!\nИмя : {i[0]}\nТелефон : {i[1]}\nMail : {i[2]}")
     else:
         bot.send_message(call.message.chat.id, f"{file[call.data]['text']}")
         bot.register_next_step_handler(call.message, second_step)
@@ -329,8 +356,6 @@ def but(call: types.CallbackQuery):
 
 
 if __name__ == '__main__':
-    try:
-        bot.polling(non_stop=True)
-    except BaseException as ex:
-        print(ex)
+    bot.polling(non_stop=True, interval=0)
+
 

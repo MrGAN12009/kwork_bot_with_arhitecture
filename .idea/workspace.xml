@@ -5,12 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e744fbd2-06be-4e79-9784-52066bf0efb1" name="Changes" comment="Авто заполнение формы при повторном обращении,&#10;решить вопрос со ссылками и дб.&#10;Удалены decode и encode за ненадобностью">
-      <change afterPath="$PROJECT_DIR$/conf_server.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/conf_server.json" beforeDir="false" afterPath="$PROJECT_DIR$/conf_server.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/images/123.png" beforeDir="false" afterPath="$PROJECT_DIR$/images/123.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/json.json" beforeDir="false" afterPath="$PROJECT_DIR$/json.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/save.json" beforeDir="false" afterPath="$PROJECT_DIR$/save.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
