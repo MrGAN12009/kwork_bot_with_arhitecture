@@ -5,6 +5,8 @@ import json
 import mysql.connector
 import csv
 import time
+import os
+
 
 
 with open('conf_server.json', 'r') as f:
@@ -21,6 +23,7 @@ arr = {}
 ADMIN_ID = int(conf["ADMIN_ID"])
 #513773161
 s = []
+stek = ''
 
 
 #ветка диалога
@@ -57,10 +60,14 @@ def start(message):
                                             callback_data=f"{file[message.text[1::]]['btns'][i][1]}"))
 
     if message.chat.id == ADMIN_ID:
-        markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{message.text[1::]}_new"))
-    if message.text != "start":
-        markup.add(InlineKeyboardButton(f"главная", callback_data="start"))
-    bot.send_message(message.chat.id, text=f"{file[message.text[1::]]['text']}", reply_markup=markup)
+        markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{message.text[1:]}_new"))
+    if message.text != "/start":
+        markup.add(InlineKeyboardButton(f"Главная", callback_data="start"))
+
+    if f"{message.text[1:]}.png" in os.listdir("images"):
+        bot.send_photo(message.chat.id, photo=open(f"images/{message.text[1:]}.png", 'rb'), caption=f"{file[message.text[1:]]['text']}", reply_markup=markup)
+    else:
+        bot.send_message(message.chat.id, text=f"{file[message.text[1:]]['text']}", reply_markup=markup)
 
 
 #spam target and forms to generate
@@ -169,7 +176,7 @@ def id(msg):
 
 
 # ["about", "shop-online", "kontakts", "sales", "extendwarr", "extendWarrSelf", "extendWarrHelp", "problem", "video", "helpspec"]
-@bot.callback_query_handler(func=lambda call: call.data in ["start", "about", "shop-online", "kontakts", "sales", "extendwarr", "extendWarrSelf", "extendWarrHelp", "problem", "video", "ansTrue", "ansFalse"])
+@bot.callback_query_handler(func=lambda call: call.data in ["start", "about", "shop-online", "kontakts", "sales", "extendwarr", "extendWarrSelf", "extendWarrHelp", "problem", "video", "ansTrue", "ansFalse", "ofStore"])
 def but(call: types.CallbackQuery):
     markup = InlineKeyboardMarkup()
     for i in file[call.data]['btns']:
@@ -180,9 +187,14 @@ def but(call: types.CallbackQuery):
 
     if call.message.chat.id == ADMIN_ID:
         markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{call.data}_new"))
+        markup.add(InlineKeyboardButton(f"Изменить фото", callback_data=f"{call.data}_newPh"))
     if call.data != "start":
-        markup.add(InlineKeyboardButton(f"главная", callback_data="start"))
-    bot.send_message(call.message.chat.id, text=f"{file[call.data]['text']}", reply_markup=markup)
+        markup.add(InlineKeyboardButton(f"Главная", callback_data="start"))
+
+    if f"{call.data}.png" in os.listdir("images"):
+        bot.send_photo(call.message.chat.id, photo=open(f"images/{call.data}.png", 'rb'), caption=f"{file[call.data]['text']}", reply_markup=markup)
+    else:
+        bot.send_message(call.message.chat.id, text=f"{file[call.data]['text']}", reply_markup=markup)
 
     if call.data == "video":
         time.sleep(600)
@@ -203,18 +215,9 @@ def but(call: types.CallbackQuery):
     markup.add(InlineKeyboardButton("политика конфиденциальности", url='https://stoewer.ru/politika-konfidenczialnosti/'))
     if call.message.chat.id == ADMIN_ID:
         markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{call.data}_new"))
-    markup.add(InlineKeyboardButton(f"главная", callback_data="start"))
+    markup.add(InlineKeyboardButton(f"Главная", callback_data="start"))
     bot.send_message(call.message.chat.id, text=f"{file[call.data]['text']}", reply_markup=markup)
 
-
-@bot.callback_query_handler(func=lambda call: call.data == "ofStore")
-def but(call: types.CallbackQuery):
-    markup = InlineKeyboardMarkup()
-    if call.message.chat.id == ADMIN_ID:
-        markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{call.data}_new"))
-        markup.add(InlineKeyboardButton(f"Изменить фото", callback_data=f"{call.data}Photo_new"))
-    markup.add(InlineKeyboardButton(f"главная", callback_data="start"))
-    bot.send_photo(call.message.chat.id, photo=open("images/123.png", "rb"), caption=f"{file[call.data]['text']}", reply_markup=markup)
 
 
 @bot.message_handler(content_types=['photo'])
@@ -223,13 +226,50 @@ def get_photo_about(message: types.Message):
         photo = message.photo[-1]
         file_info = bot.get_file(photo.file_id)
         downloaded_file = bot.download_file(file_info.file_path)
-        save_path = 'images/123.png'
-        with open(save_path, 'wb') as new_file:
+        with open(f"images/{stek}.png", 'wb') as new_file:
             new_file.write(downloaded_file)
         editSpamFile()
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton(f"Главная", callback_data="start"))
         bot.send_message(message.chat.id, 'Фотография сохранена.', reply_markup=markup)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split("_")[-1] == "newPh")
+def dut(call: types.CallbackQuery):
+    global stek
+    stek = call.data.split("_")[0]
+    bot.send_message(ADMIN_ID, "Скиньте новое фото")
+    bot.register_next_step_handler(call.message, get_photo_about)
+    return
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split("_")[-1] == "new")
+def but(call: types.CallbackQuery):
+    # if call.data.split("_")[0] == "ofStorePhoto":
+    #     bot.send_message(ADMIN_ID, "Скиньте новое изображение:")
+    #     bot.register_next_step_handler(call.message, get_photo_about)
+    #     return
+
+    comm = call.data.split('_')[0]
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton(f"Текст", callback_data=f"{call.data.split('_')[0]}_text"))
+
+    for i in file[comm]['btns']:
+        if file[comm]["type"] == "url":
+            markup.add(InlineKeyboardButton(f"текст кнопки - {file[comm]['btns'][i][0]}", callback_data=f"file_{comm}_btns_{i}"))
+            markup.add(InlineKeyboardButton(f"путь - {file[comm]['btns'][i][1]}", callback_data=f"file_{comm}_btns_{i}_content"))
+        else:
+            markup.add(InlineKeyboardButton(f"текст кнопки - {file[comm]['btns'][i][0]}", callback_data=f"file_{comm}_btns_{i}"))
+    markup.add(InlineKeyboardButton(f"Главная/отменить изменения", callback_data="start"))
+    bot.send_message(call.message.chat.id, text=f"{file[comm]['text']}\n\n\n Что хотите изменить?", reply_markup=markup)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.split("_")[0] == "file" or call.data.split('_')[-1] == 'text')
+def but(call: types.CallbackQuery):
+    global s
+    s = call.data.split("_")
+    bot.send_message(call.message.chat.id, f"Введите новое значение")
+    bot.register_next_step_handler(call.message, edit)
 
 
 #calls for remake text and urls
@@ -251,43 +291,16 @@ def edit(msg):
     bot.send_message(msg.chat.id, "Данные успешно изменены.", reply_markup=markup)
 
 
-@bot.callback_query_handler(func=lambda call: call.data.split("_")[-1] == "new")
-def but(call: types.CallbackQuery):
-    if call.data.split("_")[0] == "ofStorePhoto":
-        bot.send_message(ADMIN_ID, "Скиньте новое изображение:")
-        bot.register_next_step_handler(call.message, get_photo_about)
-        return
-
-    comm = call.data.split('_')[0]
-    markup = InlineKeyboardMarkup()
-    markup.add(InlineKeyboardButton(f"Текст", callback_data=f"{call.data.split('_')[0]}_text"))
-
-    for i in file[comm]['btns']:
-        if file[comm]["type"] == "url":
-            markup.add(InlineKeyboardButton(f"текст кнопки - {file[comm]['btns'][i][0]}", callback_data=f"file_{comm}_btns_{i}"))
-            markup.add(InlineKeyboardButton(f"путь - {file[comm]['btns'][i][1]}", callback_data=f"file_{comm}_btns_{i}_content"))
-        else:
-            markup.add(InlineKeyboardButton(f"текст кнопки - {file[comm]['btns'][i][0]}", callback_data=f"file_{comm}_btns_{i}"))
-    markup.add(InlineKeyboardButton(f"главная/отменить изменения", callback_data="start"))
-    bot.send_message(call.message.chat.id, text=f"{file[comm]['text']}\n\n\n Что хотите изменить?", reply_markup=markup)
-
-
-@bot.callback_query_handler(func=lambda call: call.data.split("_")[0] == "file" or call.data.split('_')[-1] == 'text')
-def but(call: types.CallbackQuery):
-    global s
-    s = call.data.split("_")
-    bot.send_message(call.message.chat.id, f"Введите новое значение")
-    bot.register_next_step_handler(call.message, edit)
-
-
 ###form
 @bot.callback_query_handler(func=lambda call: call.data == "startForm")
 def but(call: types.CallbackQuery):
     cursor.execute(f"SELECT userid FROM users WHERE userid = '{call.message.chat.id}'")
     if cursor.fetchone() != None:
         markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("главная", callback_data="start"))
-        bot.send_message(call.message.chat.id, "Передаю ваши данные специалисту поддержки, ожидайте.", reply_markup=markup)
+        markup.add(InlineKeyboardButton("Главная", callback_data="start"))
+        markup.add(InlineKeyboardButton("Чат поддержки", url="t.me/stoewerhelp24"))
+        bot.send_message(call.message.chat.id, "Ваша заявка отправлена специалисту Stoewer\nС Вами свяжутся в течение 2 рабочих дней\nТакже Вы можете написать нам в чат поддержки и рассказать о проблеме подробно\n", reply_markup=markup)
+
         cursor.execute(f"SELECT name, phone, mail FROM users WHERE userid = '{call.message.chat.id}'")
         i = cursor.fetchone()
         bot.send_message(ADMIN_ID, f"Поступила заявка!\nИмя : {i[0]}\nТелефон : {i[1]}\nMail : {i[2]}")
@@ -302,7 +315,7 @@ def second_step(msg):
         return
     arr[msg.chat.id] = []
     arr[msg.chat.id].append(msg.text)
-    bot.send_message(msg.chat.id, "Введите телефон")
+    bot.send_message(msg.chat.id, "Введите номер телефона в формате +79хххxxxxxx")
     bot.register_next_step_handler(msg, third_step)
 
 
@@ -312,14 +325,14 @@ def third_step(msg):
         return
     if msg.text[0] == '+' and len(msg.text) == 12:
         arr[msg.chat.id].append(msg.text)
-        bot.send_message(msg.chat.id, "Введите почту")
+        bot.send_message(msg.chat.id, "Введите электронную почту в формате helpstoewer@yandex.ru:")
         bot.register_next_step_handler(msg, foth_step)
     elif len(msg.text) == 11:
         arr[msg.chat.id].append(msg.text)
-        bot.send_message(msg.chat.id, "Введите почту")
+        bot.send_message(msg.chat.id, "Введите электронную почту в формате helpstoewer@yandex.ru:")
         bot.register_next_step_handler(msg, foth_step)
     else:
-        bot.send_message(msg.chat.id, "Неправльный формат номера телефона!\nВведите его вновь:")
+        bot.send_message(msg.chat.id, "Неправльный формат номера телефона!\nВведите его вновь в формате +79хххxxxxxx:")
         bot.register_next_step_handler(msg, third_step)
 
 
@@ -341,6 +354,7 @@ def foth_step(msg):
 def but(call: types.CallbackQuery):
     markup = InlineKeyboardMarkup()
     markup.add(InlineKeyboardButton("Главная", callback_data="start"))
+    markup.add(InlineKeyboardButton("Чат поддержки", url="@stoewerhelp24"))
     try:
         cursor.execute(
             f"INSERT INTO users (`userid`, `name`, `phone`, `mail`) VALUES (  '{str(call.message.chat.id)}', "
@@ -348,7 +362,7 @@ def but(call: types.CallbackQuery):
                                                                             f"'{arr[call.message.chat.id][1]}', "
                                                                             f"'{arr[call.message.chat.id][2]}');")
         cnx.commit()
-        bot.send_message(call.message.chat.id, "Всё прошло успешно!", reply_markup=markup)
+        bot.send_message(call.message.chat.id, "Ваша заявка отправлена специалисту Stoewer\nС Вами свяжутся в течение 2 рабочих дней\nТакже Вы можете написать нам в чат поддержки и рассказать о проблеме подробно\n", reply_markup=markup)
         bot.send_message(ADMIN_ID, f"Поступила заявка!\nИмя : {arr[call.message.chat.id][0]}\nТелефон : {arr[call.message.chat.id][1]}\nMail : {arr[call.message.chat.id][2]}")
     except BaseException as ex:
         print(ex)
