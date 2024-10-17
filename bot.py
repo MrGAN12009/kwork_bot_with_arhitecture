@@ -188,6 +188,20 @@ def but(call: types.CallbackQuery):
     if call.message.chat.id == ADMIN_ID:
         markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{call.data}_new"))
         markup.add(InlineKeyboardButton(f"Изменить фото", callback_data=f"{call.data}_newPh"))
+
+
+        ####back btn
+        if call.data in ["ofStore", "shop-online", "kontakts"]:
+            markup.add(InlineKeyboardButton("Назад", callback_data="about"))
+        elif call.data in ["extendWarrSelf", "extendWarrSelf"]:
+            markup.add(InlineKeyboardButton("Назад", callback_data="extendwarr"))
+        elif call.data in ["helpSup", "video"]:
+            markup.add(InlineKeyboardButton("Назад", callback_data="problem"))
+
+
+
+
+
     if call.data != "start":
         markup.add(InlineKeyboardButton(f"Главная", callback_data="start"))
 
@@ -215,6 +229,8 @@ def but(call: types.CallbackQuery):
     markup.add(InlineKeyboardButton("политика конфиденциальности", url='https://stoewer.ru/politika-konfidenczialnosti/'))
     if call.message.chat.id == ADMIN_ID:
         markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{call.data}_new"))
+
+    markup.add(InlineKeyboardButton("Назад", callback_data="problem"))
     markup.add(InlineKeyboardButton(f"Главная", callback_data="start"))
     bot.send_message(call.message.chat.id, text=f"{file[call.data]['text']}", reply_markup=markup)
 
