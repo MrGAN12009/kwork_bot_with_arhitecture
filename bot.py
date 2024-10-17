@@ -193,7 +193,7 @@ def but(call: types.CallbackQuery):
         ####back btn
         if call.data in ["ofStore", "shop-online", "kontakts"]:
             markup.add(InlineKeyboardButton("Назад", callback_data="about"))
-        elif call.data in ["extendWarrSelf", "extendWarrSelf"]:
+        elif call.data in ["extendWarrSelf", "extendWarrHelp"]:
             markup.add(InlineKeyboardButton("Назад", callback_data="extendwarr"))
         elif call.data in ["helpSup", "video"]:
             markup.add(InlineKeyboardButton("Назад", callback_data="problem"))
@@ -370,7 +370,7 @@ def foth_step(msg):
 def but(call: types.CallbackQuery):
     markup = InlineKeyboardMarkup()
     markup.add(InlineKeyboardButton("Главная", callback_data="start"))
-    markup.add(InlineKeyboardButton("Чат поддержки", url="@stoewerhelp24"))
+    markup.add(InlineKeyboardButton("Чат поддержки", url="t.me/stoewerhelp24"))
     try:
         cursor.execute(
             f"INSERT INTO users (`userid`, `name`, `phone`, `mail`) VALUES (  '{str(call.message.chat.id)}', "
