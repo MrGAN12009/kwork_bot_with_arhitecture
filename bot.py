@@ -15,6 +15,21 @@ with open('conf_server.json', 'r') as f:
 #mysql connect
 cnx = mysql.connector.connect(user = conf["user"], password = conf["password"], host = conf["host"], database = conf["database"])
 cursor = cnx.cursor()
+
+def check():
+    global cnx, cursor
+    if cnx.is_connected():
+        return True
+    try:
+        cnx = mysql.connector.connect(user=conf["user"], password=conf["password"], host=conf["host"],
+                                      database=conf["database"])
+        cursor = cnx.cursor()
+        return True
+    except BaseException as ex:
+        bot.send_message(ADMIN_ID, f"Произошла ошибка с подключением к базе данных:\n{ex}")
+        return False
+
+
 #bot token
 token = conf["TOKEN"]
 bot = telebot.TeleBot(token)
@@ -47,6 +62,8 @@ def editSpamFile():
 #start отработчик
 @bot.message_handler(commands = ["start", "about", "sales", "problem", "extendwarr"])
 def start(message):
+    if check() == False:
+        return
     cursor.execute(f"SELECT userid FROM spam WHERE userid = '{message.chat.id}'")
     if cursor.fetchone() == None:
         cursor.execute(f"INSERT INTO spam (`userid`) VALUES ('{str(message.chat.id)}')")
@@ -63,11 +80,11 @@ def start(message):
         markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{message.text[1:]}_new"))
     if message.text != "/start":
         markup.add(InlineKeyboardButton(f"Главная", callback_data="start"))
-
     if f"{message.text[1:]}.png" in os.listdir("images"):
         bot.send_photo(message.chat.id, photo=open(f"images/{message.text[1:]}.png", 'rb'), caption=f"{file[message.text[1:]]['text']}", reply_markup=markup)
     else:
         bot.send_message(message.chat.id, text=f"{file[message.text[1:]]['text']}", reply_markup=markup)
+
 
 
 #spam target and forms to generate
@@ -99,6 +116,8 @@ def but(call: types.CallbackQuery):
 @bot.callback_query_handler(func=lambda call: call.data == "getUserInfo")
 def but(call: types.CallbackQuery):
     if call.message.chat.id == ADMIN_ID:
+        if not check():
+            return
         with open('csv.csv', 'w', encoding="UTF-8") as csvfile:
             fieldnames = ['Имя', 'Телефон', 'Почта']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -158,6 +177,8 @@ def but(call: types.CallbackQuery):
             bot.send_message(call.message.chat.id, "Введите новые кнопки в формате название-ссылка, название-ссылка,... \nОбратите внимание что в таком случае название не должно содержать запятых:")
             bot.register_next_step_handler(call.message, new_btns)
         elif call.data.split('_')[1] == "start":
+            if not check():
+                return
             markup = InlineKeyboardMarkup()
             for i in spam["btns"]:
                 markup.add(InlineKeyboardButton(i.split("-")[0], url=i.split("-")[1]))
@@ -188,7 +209,7 @@ def but(call: types.CallbackQuery):
     if call.message.chat.id == ADMIN_ID:
         markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{call.data}_new"))
         markup.add(InlineKeyboardButton(f"Изменить фото", callback_data=f"{call.data}_newPh"))
-
+        markup.add(InlineKeyboardButton(f"Удалить фото", callback_data=f"{call.data}_removePh"))
 
         ####back btn
         if call.data in ["ofStore", "shop-online", "kontakts"]:
@@ -197,10 +218,6 @@ def but(call: types.CallbackQuery):
             markup.add(InlineKeyboardButton("Назад", callback_data="extendwarr"))
         elif call.data in ["helpSup", "video"]:
             markup.add(InlineKeyboardButton("Назад", callback_data="problem"))
-
-
-
-
 
     if call.data != "start":
         markup.add(InlineKeyboardButton(f"Главная", callback_data="start"))
@@ -259,6 +276,14 @@ def dut(call: types.CallbackQuery):
     return
 
 
+@bot.callback_query_handler(func=lambda call: call.data.split("_")[-1] == "removePh")
+def dut(call: types.CallbackQuery):
+    if call.message.chat.id == ADMIN_ID:
+        os.remove(f"images/{call.data.split('_')[0]}.png")
+        bot.send_message(call.message.chat.id, "Фото удалено")
+        return
+
+
 @bot.callback_query_handler(func=lambda call: call.data.split("_")[-1] == "new")
 def but(call: types.CallbackQuery):
     # if call.data.split("_")[0] == "ofStorePhoto":
@@ -310,6 +335,8 @@ def edit(msg):
 ###form
 @bot.callback_query_handler(func=lambda call: call.data == "startForm")
 def but(call: types.CallbackQuery):
+    if not check():
+        return
     cursor.execute(f"SELECT userid FROM users WHERE userid = '{call.message.chat.id}'")
     if cursor.fetchone() != None:
         markup = InlineKeyboardMarkup()
@@ -368,6 +395,8 @@ def foth_step(msg):
 
 @bot.callback_query_handler(func=lambda call: call.data == "continueForm")
 def but(call: types.CallbackQuery):
+    if not check():
+        return
     markup = InlineKeyboardMarkup()
     markup.add(InlineKeyboardButton("Главная", callback_data="start"))
     markup.add(InlineKeyboardButton("Чат поддержки", url="t.me/stoewerhelp24"))
@@ -386,6 +415,9 @@ def but(call: types.CallbackQuery):
 
 
 if __name__ == '__main__':
-    bot.polling(non_stop=True, interval=0)
-
+    while True:
+        try:
+            bot.polling(non_stop=True, interval=0)
+        except BaseException as ex:
+            print(ex)
 

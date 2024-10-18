@@ -1,6 +1,6 @@
 import os
 
-print(os.listdir("images"))
+print(os.remove("images/.png"))
 
 if "start.png" in os.listdir("images"):
     print(1)
