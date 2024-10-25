@@ -6,7 +6,7 @@ import mysql.connector
 import csv
 import time
 import os
-
+import threading
 
 
 with open('conf_server.json', 'r') as f:
@@ -15,6 +15,7 @@ with open('conf_server.json', 'r') as f:
 #mysql connect
 cnx = mysql.connector.connect(user = conf["user"], password = conf["password"], host = conf["host"], database = conf["database"])
 cursor = cnx.cursor()
+
 
 def check():
     global cnx, cursor
@@ -26,7 +27,7 @@ def check():
         cursor = cnx.cursor()
         return True
     except BaseException as ex:
-        bot.send_message(ADMIN_ID, f"Произошла ошибка с подключением к базе данных:\n{ex}")
+        bot.send_message(ADMIN_ID, f"Произошла ошибка с подключением к базе данных:\n{ex}", parse_mode="HTML")
         return False
 
 
@@ -35,11 +36,11 @@ token = conf["TOKEN"]
 bot = telebot.TeleBot(token)
 #необходимые переменные
 arr = {}
+arr_delay_message = {}
 ADMIN_ID = int(conf["ADMIN_ID"])
 #513773161
 s = []
 stek = ''
-
 
 #ветка диалога
 with open("json.json", 'r', encoding="UTF-8") as f:
@@ -48,15 +49,34 @@ with open("json.json", 'r', encoding="UTF-8") as f:
 with open("spam_post.json", 'r', encoding="UTF-8") as f:
     spam = json.load(f)
 
-
 def editFile():
     with open("json.json", 'w', encoding="UTF-8") as f:
         f.write(json.dumps(file))
 
-
 def editSpamFile():
     with open("spam_post.json", 'w', encoding="UTF-8") as f:
         f.write(json.dumps(spam))
+
+
+#delay msgs
+def start_timer():
+    global arr_delay_message
+    def delayed_message():
+        while True:
+            for chat_id, chat_time in list(arr_delay_message.items()):
+                if int(time.time()) >= chat_time:
+                    markup = InlineKeyboardMarkup()
+                    markup.add(InlineKeyboardButton("Да", callback_data="ansTrue"))
+                    markup.add(InlineKeyboardButton("Нет", callback_data="ansFalse"))
+                    try:
+                        bot.send_message(chat_id, text="Нам удалось вам помочь?", reply_markup=markup, parse_mode="HTML")
+                        del arr_delay_message[chat_id]
+                    except BaseException as ex:
+                        print(ex)
+            time.sleep(10)
+
+    threading.Thread(target=delayed_message).start()
+
 
 
 #start отработчик
@@ -78,12 +98,17 @@ def start(message):
 
     if message.chat.id == ADMIN_ID:
         markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{message.text[1:]}_new"))
+        markup.add(InlineKeyboardButton(f"Изменить фото", callback_data=f"{message.text[1:]}_newPh"))
+        markup.add(InlineKeyboardButton(f"Удалить фото", callback_data=f"{message.text[1:]}_removePh"))
+
+    if message.chat.id == ADMIN_ID:
+        markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{message.text[1:]}_new"))
     if message.text != "/start":
         markup.add(InlineKeyboardButton(f"Главная", callback_data="start"))
     if f"{message.text[1:]}.png" in os.listdir("images"):
-        bot.send_photo(message.chat.id, photo=open(f"images/{message.text[1:]}.png", 'rb'), caption=f"{file[message.text[1:]]['text']}", reply_markup=markup)
+        bot.send_photo(message.chat.id, photo=open(f"images/{message.text[1:]}.png", 'rb'), caption=f"{file[message.text[1:]]['text']}", reply_markup=markup, parse_mode="HTML")
     else:
-        bot.send_message(message.chat.id, text=f"{file[message.text[1:]]['text']}", reply_markup=markup)
+        bot.send_message(message.chat.id, text=f"{file[message.text[1:]]['text']}", reply_markup=markup, parse_mode="HTML")
 
 
 
@@ -96,7 +121,8 @@ def help(msg):
         markup.add(InlineKeyboardButton(f"расслыка", callback_data=f"spam"))
         markup.add(InlineKeyboardButton(f"данные пользователей", callback_data=f"getUserInfo"))
     
-        bot.send_message(msg.chat.id, f"Хотите начать расслыку?", reply_markup=markup)
+        bot.send_message(msg.chat.id, f"Хотите начать расслыку?", reply_markup=markup, parse_mode="HTML")
+        bot.delete_message(msg.chat.id, msg.id)
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "spam")
@@ -111,6 +137,7 @@ def but(call: types.CallbackQuery):
         for i in spam['btns']:
             text += f"Внешний вид - {i.split('-')[0]}\nССылка - {i.split('-')[1]}\n------\n"
         bot.send_photo(call.message.chat.id, photo=open('test.png', 'rb'), caption=f'{spam["text"]}\n\n\nКнопки:\n{text}', reply_markup=markup)
+        bot.delete_message(call.message.chat.id, call.message.message_id)
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "getUserInfo")
@@ -143,7 +170,7 @@ def get_photo(message: types.Message):
         editSpamFile()
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton(f"Показать пост", callback_data="spam"))
-        bot.send_message(message.chat.id, 'Фотография сохранена.', reply_markup=markup)
+        bot.send_message(message.chat.id, 'Фотография сохранена.', reply_markup=markup, parse_mode="HTML")
 
 
 def new_text(message):
@@ -152,7 +179,7 @@ def new_text(message):
         markup = InlineKeyboardMarkup()
         editSpamFile()
         markup.add(InlineKeyboardButton(f"Показать пост", callback_data="spam"))
-        bot.send_message(message.chat.id, 'Текст Сохранён', reply_markup=markup)
+        bot.send_message(message.chat.id, 'Текст Сохранён', reply_markup=markup, parse_mode="HTML")
 
 
 def new_btns(message):
@@ -161,20 +188,20 @@ def new_btns(message):
         markup = InlineKeyboardMarkup()
         editSpamFile()
         markup.add(InlineKeyboardButton(f"Показать пост", callback_data="spam"))
-        bot.send_message(message.chat.id, 'Кнопки сохранены', reply_markup=markup)
+        bot.send_message(message.chat.id, 'Кнопки сохранены', reply_markup=markup, parse_mode="HTML")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.split('_')[0] == "ssspam")
 def but(call: types.CallbackQuery):
     if call.message.chat.id == ADMIN_ID:
         if call.data.split('_')[1] == "text":
-            bot.send_message(call.message.chat.id, "Введите новый текст:")
+            bot.send_message(call.message.chat.id, "Введите новый текст:", parse_mode="HTML")
             bot.register_next_step_handler(call.message, new_text)
         elif call.data.split('_')[1] == "photo":
-            bot.send_message(call.message.chat.id, "Пришлите новое изображение для рассылки:")
+            bot.send_message(call.message.chat.id, "Пришлите новое изображение для рассылки:", parse_mode="HTML")
             bot.register_next_step_handler(call.message, get_photo)
         elif call.data.split('_')[1] == "btns":
-            bot.send_message(call.message.chat.id, "Введите новые кнопки в формате название-ссылка, название-ссылка,... \nОбратите внимание что в таком случае название не должно содержать запятых:")
+            bot.send_message(call.message.chat.id, "Введите новые кнопки в формате название-ссылка, название-ссылка,... \nОбратите внимание что в таком случае название не должно содержать запятых:", parse_mode="HTML")
             bot.register_next_step_handler(call.message, new_btns)
         elif call.data.split('_')[1] == "start":
             if not check():
@@ -188,16 +215,11 @@ def but(call: types.CallbackQuery):
                     bot.send_photo(str(i).split("'")[1], photo=open('test.png', 'rb'), caption=f"{spam['text']}", reply_markup=markup)
                 except BaseException as ex:
                     pass
-            bot.send_message(call.message.chat.id, "Отправка окончена!")
-
-
-@bot.message_handler(commands=["id"])
-def id(msg):
-    bot.send_message(msg.chat.id, f"{msg.chat.id}")
+            bot.send_message(call.message.chat.id, "Отправка окончена!", parse_mode="HTML")
 
 
 # ["about", "shop-online", "kontakts", "sales", "extendwarr", "extendWarrSelf", "extendWarrHelp", "problem", "video", "helpspec"]
-@bot.callback_query_handler(func=lambda call: call.data in ["start", "about", "shop-online", "kontakts", "sales", "extendwarr", "extendWarrSelf", "extendWarrHelp", "problem", "video", "ansTrue", "ansFalse", "ofStore"])
+@bot.callback_query_handler(func=lambda call: call.data in ["helpSup", "start", "about", "shop-online", "kontakts", "sales", "extendwarr", "extendWarrHelp", "problem", "video", "ansTrue", "ansFalse"])
 def but(call: types.CallbackQuery):
     markup = InlineKeyboardMarkup()
     for i in file[call.data]['btns']:
@@ -209,33 +231,32 @@ def but(call: types.CallbackQuery):
     if call.message.chat.id == ADMIN_ID:
         markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{call.data}_new"))
         markup.add(InlineKeyboardButton(f"Изменить фото", callback_data=f"{call.data}_newPh"))
-        markup.add(InlineKeyboardButton(f"Удалить фото", callback_data=f"{call.data}_removePh"))
 
         ####back btn
-        if call.data in ["ofStore", "shop-online", "kontakts"]:
-            markup.add(InlineKeyboardButton("Назад", callback_data="about"))
-        elif call.data in ["extendWarrSelf", "extendWarrHelp"]:
-            markup.add(InlineKeyboardButton("Назад", callback_data="extendwarr"))
-        elif call.data in ["helpSup", "video"]:
-            markup.add(InlineKeyboardButton("Назад", callback_data="problem"))
+    if call.data in ["shop-online", "kontakts"]:
+        markup.add(InlineKeyboardButton("Назад", callback_data="about"))
+    elif call.data in ["extendWarrSelf", "extendWarrHelp"]:
+        markup.add(InlineKeyboardButton("Назад", callback_data="extendwarr"))
+    elif call.data in ["helpSup", "video"]:
+        markup.add(InlineKeyboardButton("Назад", callback_data="problem"))
 
     if call.data != "start":
         markup.add(InlineKeyboardButton(f"Главная", callback_data="start"))
 
     if f"{call.data}.png" in os.listdir("images"):
+        if call.message.chat.id == ADMIN_ID:
+            markup.add(InlineKeyboardButton(f"Удалить фото", callback_data=f"{call.data}_removePh"))
         bot.send_photo(call.message.chat.id, photo=open(f"images/{call.data}.png", 'rb'), caption=f"{file[call.data]['text']}", reply_markup=markup)
     else:
-        bot.send_message(call.message.chat.id, text=f"{file[call.data]['text']}", reply_markup=markup)
+        bot.send_message(call.message.chat.id, text=f"{file[call.data]['text']}", reply_markup=markup, parse_mode="HTML")
+    bot.delete_message(call.message.chat.id, call.message.message_id)
 
     if call.data == "video":
-        time.sleep(600)
-        markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton(f"Да", callback_data=f"ansTrue"))
-        markup.add(InlineKeyboardButton(f"Нет", callback_data=f"ansFalse"))
-        bot.send_message(call.message.chat.id, text=f"Нам удалось вам помочь?", reply_markup=markup)
+        if call.message.chat.id not in arr_delay_message:
+            arr_delay_message[call.message.chat.id] = int(time.time()) + 1200
 
 
-@bot.callback_query_handler(func=lambda call: call.data == "helpSup")
+@bot.callback_query_handler(func=lambda call: call.data == "extendWarrSelf")
 def but(call: types.CallbackQuery):
     markup = InlineKeyboardMarkup()
     for i in file[call.data]['btns']:
@@ -243,13 +264,40 @@ def but(call: types.CallbackQuery):
             markup.add(InlineKeyboardButton(f"{file[call.data]['btns'][i][0]}", url=f"{file[call.data]['btns'][i][1]}"))
         else:
             markup.add(InlineKeyboardButton(f"{file[call.data]['btns'][i][0]}", callback_data=f"{file[call.data]['btns'][i][1]}"))
-    markup.add(InlineKeyboardButton("политика конфиденциальности", url='https://stoewer.ru/politika-konfidenczialnosti/'))
+    markup.add(InlineKeyboardButton("Оставить заявку", callback_data='startForm'))
     if call.message.chat.id == ADMIN_ID:
         markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{call.data}_new"))
 
     markup.add(InlineKeyboardButton("Назад", callback_data="problem"))
     markup.add(InlineKeyboardButton(f"Главная", callback_data="start"))
-    bot.send_message(call.message.chat.id, text=f"{file[call.data]['text']}", reply_markup=markup)
+    bot.send_message(call.message.chat.id, text=f"{file[call.data]['text']}", reply_markup=markup, parse_mode="HTML")
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "ofStore")
+def but(call: types.CallbackQuery):
+    markup = InlineKeyboardMarkup()
+    for i in file[call.data]['btns']:
+        if file[call.data]["type"] == "url":
+            markup.add(InlineKeyboardButton(f"{file[call.data]['btns'][i][0]}", url=f"{file[call.data]['btns'][i][1]}"))
+        else:
+            markup.add(InlineKeyboardButton(f"{file[call.data]['btns'][i][0]}", callback_data=f"{file[call.data]['btns'][i][1]}"))
+    markup.add(InlineKeyboardButton("Найти магазин Stoewer", url='https://yandex.ru/maps/-/CDdLnYlj '))
+    if call.message.chat.id == ADMIN_ID:
+        markup.add(InlineKeyboardButton(f"Изменить сообщение", callback_data=f"{call.data}_new"))
+        markup.add(InlineKeyboardButton(f"Изменить фото", callback_data=f"{call.data}_newPh"))
+
+    markup.add(InlineKeyboardButton("Назад", callback_data="about"))
+    markup.add(InlineKeyboardButton(f"Главная", callback_data="start"))
+    if f"{call.data}.png" in os.listdir("images"):
+        if call.message.chat.id == ADMIN_ID:
+            markup.add(InlineKeyboardButton(f"Удалить фото", callback_data=f"{call.data}_removePh"))
+        bot.send_photo(call.message.chat.id, photo=open(f"images/{call.data}.png", 'rb'),
+                       caption=f"{file[call.data]['text']}", reply_markup=markup)
+    else:
+        bot.send_message(call.message.chat.id, text=f"{file[call.data]['text']}", reply_markup=markup,
+                         parse_mode="HTML")
+    bot.delete_message(call.message.chat.id, call.message.message_id)
 
 
 
@@ -264,14 +312,15 @@ def get_photo_about(message: types.Message):
         editSpamFile()
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton(f"Главная", callback_data="start"))
-        bot.send_message(message.chat.id, 'Фотография сохранена.', reply_markup=markup)
+        bot.send_message(message.chat.id, 'Фотография сохранена.', reply_markup=markup, parse_mode="HTML")
+
 
 
 @bot.callback_query_handler(func=lambda call: call.data.split("_")[-1] == "newPh")
 def dut(call: types.CallbackQuery):
     global stek
     stek = call.data.split("_")[0]
-    bot.send_message(ADMIN_ID, "Скиньте новое фото")
+    bot.send_message(ADMIN_ID, "Скиньте новое фото", parse_mode="HTML")
     bot.register_next_step_handler(call.message, get_photo_about)
     return
 
@@ -280,17 +329,12 @@ def dut(call: types.CallbackQuery):
 def dut(call: types.CallbackQuery):
     if call.message.chat.id == ADMIN_ID:
         os.remove(f"images/{call.data.split('_')[0]}.png")
-        bot.send_message(call.message.chat.id, "Фото удалено")
+        bot.send_message(call.message.chat.id, "Фото удалено", parse_mode="HTML")
         return
 
 
 @bot.callback_query_handler(func=lambda call: call.data.split("_")[-1] == "new")
 def but(call: types.CallbackQuery):
-    # if call.data.split("_")[0] == "ofStorePhoto":
-    #     bot.send_message(ADMIN_ID, "Скиньте новое изображение:")
-    #     bot.register_next_step_handler(call.message, get_photo_about)
-    #     return
-
     comm = call.data.split('_')[0]
     markup = InlineKeyboardMarkup()
     markup.add(InlineKeyboardButton(f"Текст", callback_data=f"{call.data.split('_')[0]}_text"))
@@ -302,14 +346,16 @@ def but(call: types.CallbackQuery):
         else:
             markup.add(InlineKeyboardButton(f"текст кнопки - {file[comm]['btns'][i][0]}", callback_data=f"file_{comm}_btns_{i}"))
     markup.add(InlineKeyboardButton(f"Главная/отменить изменения", callback_data="start"))
-    bot.send_message(call.message.chat.id, text=f"{file[comm]['text']}\n\n\n Что хотите изменить?", reply_markup=markup)
+    bot.send_message(call.message.chat.id, text=f"{file[comm]['text']}\n\n\n Что хотите изменить?", reply_markup=markup, parse_mode="HTML")
+
+    bot.delete_message(call.message.chat.id, call.message.message_id)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.split("_")[0] == "file" or call.data.split('_')[-1] == 'text')
 def but(call: types.CallbackQuery):
     global s
     s = call.data.split("_")
-    bot.send_message(call.message.chat.id, f"Введите новое значение")
+    bot.send_message(call.message.chat.id, f"Введите новое значение", parse_mode="HTML")
     bot.register_next_step_handler(call.message, edit)
 
 
@@ -329,7 +375,7 @@ def edit(msg):
     editFile()
     markup = InlineKeyboardMarkup()
     markup.add(InlineKeyboardButton("Главная", callback_data="start"))
-    bot.send_message(msg.chat.id, "Данные успешно изменены.", reply_markup=markup)
+    bot.send_message(msg.chat.id, "Данные успешно изменены.", reply_markup=markup, parse_mode="HTML")
 
 
 ###form
@@ -342,14 +388,15 @@ def but(call: types.CallbackQuery):
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton("Главная", callback_data="start"))
         markup.add(InlineKeyboardButton("Чат поддержки", url="t.me/stoewerhelp24"))
-        bot.send_message(call.message.chat.id, "Ваша заявка отправлена специалисту Stoewer\nС Вами свяжутся в течение 2 рабочих дней\nТакже Вы можете написать нам в чат поддержки и рассказать о проблеме подробно\n", reply_markup=markup)
+        bot.send_message(call.message.chat.id, "Ваша заявка отправлена специалисту Stoewer\nС Вами свяжутся в течение 2 рабочих дней\nТакже Вы можете написать нам в чат поддержки и рассказать о проблеме подробно\n", reply_markup=markup, parse_mode="HTML")
 
         cursor.execute(f"SELECT name, phone, mail FROM users WHERE userid = '{call.message.chat.id}'")
         i = cursor.fetchone()
-        bot.send_message(ADMIN_ID, f"Поступила заявка!\nИмя : {i[0]}\nТелефон : {i[1]}\nMail : {i[2]}")
+        bot.send_message(ADMIN_ID, f"Поступила заявка!\nИмя : {i[0]}\nТелефон : {i[1]}\nMail : {i[2]}", parse_mode="HTML")
     else:
-        bot.send_message(call.message.chat.id, f"{file[call.data]['text']}")
+        bot.send_message(call.message.chat.id, f"{file[call.data]['text']}", parse_mode="HTML")
         bot.register_next_step_handler(call.message, second_step)
+    bot.delete_message(call.message.chat.id, call.message.message_id)
 
 
 def second_step(msg):
@@ -358,8 +405,10 @@ def second_step(msg):
         return
     arr[msg.chat.id] = []
     arr[msg.chat.id].append(msg.text)
-    bot.send_message(msg.chat.id, "Введите номер телефона в формате +79хххxxxxxx")
+    bot.send_message(msg.chat.id, "Введите номер телефона в формате +79хххxxxxxx", parse_mode="HTML")
     bot.register_next_step_handler(msg, third_step)
+    bot.delete_message(msg.chat.id, msg.message_id)
+
 
 
 def third_step(msg):
@@ -368,14 +417,14 @@ def third_step(msg):
         return
     if msg.text[0] == '+' and len(msg.text) == 12:
         arr[msg.chat.id].append(msg.text)
-        bot.send_message(msg.chat.id, "Введите электронную почту в формате helpstoewer@yandex.ru:")
+        bot.send_message(msg.chat.id, "Введите электронную почту в формате helpstoewer@yandex.ru:", parse_mode="HTML")
         bot.register_next_step_handler(msg, foth_step)
     elif len(msg.text) == 11:
         arr[msg.chat.id].append(msg.text)
-        bot.send_message(msg.chat.id, "Введите электронную почту в формате helpstoewer@yandex.ru:")
+        bot.send_message(msg.chat.id, "Введите электронную почту в формате helpstoewer@yandex.ru:", parse_mode="HTML")
         bot.register_next_step_handler(msg, foth_step)
     else:
-        bot.send_message(msg.chat.id, "Неправльный формат номера телефона!\nВведите его вновь в формате +79хххxxxxxx:")
+        bot.send_message(msg.chat.id, "Неправльный формат номера телефона!\nВведите его вновь в формате +79хххxxxxxx:", parse_mode="HTML")
         bot.register_next_step_handler(msg, third_step)
 
 
@@ -388,9 +437,9 @@ def foth_step(msg):
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton(f"Подтвердить", callback_data=f"continueForm"))
         markup.add(InlineKeyboardButton(f"Заполнить заново", callback_data=f"startForm"))
-        bot.send_message(msg.chat.id, f"Форма заполнена - проверьте\n{arr[msg.chat.id][0]}\n{arr[msg.chat.id][1]}\n{arr[msg.chat.id][2]}", reply_markup=markup)
+        bot.send_message(msg.chat.id, f"Форма заполнена - проверьте\n{arr[msg.chat.id][0]}\n{arr[msg.chat.id][1]}\n{arr[msg.chat.id][2]}", reply_markup=markup, parse_mode="HTML")
     else:
-        bot.send_message(msg.chat.id, 'Неправльный формат почты, введите снова:')
+        bot.send_message(msg.chat.id, 'Неправльный формат почты, введите снова:', parse_mode="HTML")
         bot.register_next_step_handler(msg, foth_step)
 
 @bot.callback_query_handler(func=lambda call: call.data == "continueForm")
@@ -407,16 +456,18 @@ def but(call: types.CallbackQuery):
                                                                             f"'{arr[call.message.chat.id][1]}', "
                                                                             f"'{arr[call.message.chat.id][2]}');")
         cnx.commit()
-        bot.send_message(call.message.chat.id, "Ваша заявка отправлена специалисту Stoewer\nС Вами свяжутся в течение 2 рабочих дней\nТакже Вы можете написать нам в чат поддержки и рассказать о проблеме подробно\n", reply_markup=markup)
-        bot.send_message(ADMIN_ID, f"Поступила заявка!\nИмя : {arr[call.message.chat.id][0]}\nТелефон : {arr[call.message.chat.id][1]}\nMail : {arr[call.message.chat.id][2]}")
+        bot.send_message(call.message.chat.id, "Ваша заявка отправлена специалисту Stoewer\nС Вами свяжутся в течение 2 рабочих дней\nТакже Вы можете написать нам в чат поддержки и рассказать о проблеме подробно\n", reply_markup=markup, parse_mode="HTML")
+        bot.send_message(ADMIN_ID, f"Поступила заявка!\nИмя : {arr[call.message.chat.id][0]}\nТелефон : {arr[call.message.chat.id][1]}\nMail : {arr[call.message.chat.id][2]}", parse_mode="HTML")
+        bot.delete_message(call.message.chat.id, call.message.message_id)
     except BaseException as ex:
         print(ex)
-        bot.send_message(call.message.chat.id, "Что-то пошло не так, попробуйте снова позже.", reply_markup=markup)
+        bot.send_message(call.message.chat.id, "Что-то пошло не так, попробуйте снова позже.", reply_markup=markup, parse_mode="HTML")
 
 
 if __name__ == '__main__':
     while True:
         try:
+            start_timer()
             bot.polling(non_stop=True, interval=0)
         except BaseException as ex:
             print(ex)

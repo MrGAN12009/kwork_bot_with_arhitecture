@@ -1,6 +1,4 @@
-import os
+import requests
 
-print(os.remove("images/.png"))
-
-if "start.png" in os.listdir("images"):
-    print(1)
+r = requests.get("http://192.168.0.88:8000/regions")
+print(r.content)
